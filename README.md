@@ -20,7 +20,9 @@ This new wpilibj.project folder has a src directory that needs to be synchronize
 The commands to clone this repository are shown below:
 
 git clone https://github.com/toastertaster/wpilib.git src
+
 cd src
+
 git branch --track master origin/master
 
 
