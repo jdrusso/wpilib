@@ -15,22 +15,65 @@ import edu.wpi.first.wpilibj.util.BoundaryException;
 import java.util.TimerTask;
 
 /**
- * Class implements a PID Control Loop.
- *
- * Creates a separate thread which reads the given PIDSource and takes
- * care of the integral calculations, as well as writing the given
- * PIDOutput
+ * This class implements a PID Control Loop.
+ * 
+ * For general information on a PID controller, see
+ * {@see <a href="https://en.wikipedia.org/wiki/PID_controller">https://en.wikipedia.org/wiki/PID_controller</a>}.  
+ * A general understanding of the controller is beneficial before proceeding to use this class implementation.
+ * A PID Controller is a feedback controller that works in closed-loop through means of a sensor to determine 
+ * an output to an actuator (motor, etc).  All closed-loop systems should be tested to ensure stability of
+ * operation for safety reasons.
+ * <p>
+ * A PIDController instance requires a {@see PIDSource} and {@see PIDOutput}.
+ * This class creates a separate thread which reads the given {@see PIDSource}, takes
+ * care of the calculations, and finally writing the given {@see PIDOutput}.
+ * <p>
+ * There are constants that determine the controller characteristics
+ * including Kp, Ki, Kd.  A thorough explanation of their meaning is available 
+ * on the Wikipedia page.  Your particular values will depend on the error signal
+ * magnitude and the desired output magnitude.  Choosing these values is called tuning.
+ * The performance of the PID controller, which is how quickly the error goes to zero,
+ * is affected by these values. 
+ * <p>
+ * There are several other settings such as the SetPoint, Tolerance, InputRange,
+ * OutputRange, and Period.
+ * <p>
+ * By default, the SetPoint value is zero. 
+ * The error signal is defined as {@see PIDController#getSetpoint()} - {@see PIDSource#pidGet()}. 
+ * This is referred to as negative feedback control.
+ * <p>
+ * In order for the error signal to be zero, the {@see PIDSource#pidGet()} value
+ * should approach the {@see PIDController#getSetpoint()} value.  The controller's purpose is to drive the
+ * error signal to zero.  Unstable controllers are unable to drive the error signal
+ * to zero and can cause oscillation of the output.
+ * <p>
+ * By default, Tolerance is a {@link PIDController.NullTolerance}.  This is simply a placeholder.
+ * The available Tolerance options are {@link PIDController.AbsoluteTolerance} and {@link PIDController.PercentageTolerance}.
+ * <p>
+ * InputRange and OutputRange are restrictions on the values that are used in the calculations.
+ * The {@see PIDSource} may return a value greater than the maximum of the input range, or less than the minimum of the input range.
+ * However, this value is then thresholded by the InputRange before calculation.  
+ * Likewise, the output is thresholded before it is passed to {@see PIDOutput}.  
+ * These restrictions are convenient to limit ranges; however, they do represent
+ * non-linearities and can change closed-loop stability/performance.  
+ * <p>
+ * By default, the Period is 50 milliseconds, or equivalent frequency of 20 cycles per second. 
+ * It can only be set by the constructor, since its setting affects the thread options.
+ * 
  */
 public class PIDController implements IUtility, LiveWindowSendable, Controller {
-
+    /**
+     * This is the default period that the controller operates at, 0.050 seconds or 50ms.
+     */
     public static final double kDefaultPeriod = .05;
-    private static int instances = 0;
+    
+    private static int instances = 0;   // number of instances of class objects (for reporting purposes)
     private double m_P;			// factor for "proportional" control
     private double m_I;			// factor for "integral" control
     private double m_D;			// factor for "derivative" control
     private double m_F;                 // factor for feedforward term
-    private double m_maximumOutput = 1.0;	// |maximum output|
-    private double m_minimumOutput = -1.0;	// |minimum output|
+    private double m_maximumOutput = 1.0;	// maximum output
+    private double m_minimumOutput = -1.0;	// minimum output
     private double m_maximumInput = 0.0;		// maximum input - limit setpoint to this
     private double m_minimumInput = 0.0;		// minimum input - limit setpoint to this
     private boolean m_continuous = false;	// do the endpoints wrap around? eg. Absolute encoder
@@ -48,46 +91,98 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
     private boolean m_usingPercentTolerance;
     
     /**
-     * Tolerance is the type of tolerance used to specify if the PID controller is on target.
-     * The various implementations of this class such as PercentageTolerance and AbsoluteTolerance
-     * specify types of tolerance specifications to use.
+     * This interface is used as a placeholder to specify the type of tolerance.
+     * The implementations of this class, such as PercentageTolerance and AbsoluteTolerance,
+     * specify types of tolerance specifications to use
      */
     public interface Tolerance {
+        /** Parent Tolerance interface that children classes must implement
+         * 
+         * @return true if the chosen metric is met. (This is a placeholder method).  
+         */
 	public boolean onTarget();
     }
     
+    /**
+     * PercentageTolerance determines if the PID Controller error is within a selected percentage of the InputRange.
+     * <p>
+     * The calculation of onTarget() uses
+     * \[ | Error | &lt; \left[ \frac{Percentage}{100} \times \left( InputMax - InputMin \right) \right] \]
+     * where 
+     * <ul>
+     * <li>\(Error\) is calculated in the {@see PIDController},
+     * <li>\(Percentage\) is set in the constructor of {@see PIDController.PercentageTolerance},
+     * <li>\(InputMin\) and \(InputMax\) are set by {@see PIDController#setInputRange(double, double)}.
+     * </ul>
+     */
     public class PercentageTolerance implements Tolerance {
 	double percentage;
 	
+        /**
+         * 
+         * @param value the \(Percentage\) value.  Should be a value between 0.0 and 100.0 
+         */
 	PercentageTolerance(double value) {
 	    percentage = value;
 	}
 
+        /** Boolean determination of PID controller.
+         * 
+         * @return true if the PID controller error is within a selected percentage of the InputRange values; false otherwise.  
+         */
 	public boolean onTarget() {
 	    return (Math.abs(getError()) < percentage / 100
                 * (m_maximumInput - m_minimumInput));
 	}
     }
     
+    /** AbsoluteTolerance determines if the PID Controller error is less than a selected magnitude.
+     * <p>
+     * The calculation of onTarget() uses
+     * \[ |Error| &lt; Magnitude \]
+     * where 
+     * <ul>
+     * <li> \(Error\) is calculated in the {@see PIDController},
+     * <li> \(Magnitude\) is set in the constructor of {@see PIDController.AbsoluteTolerance}.
+     */
     public class AbsoluteTolerance implements Tolerance {
 	double value;
 	
+        /** Constructor for AbsoluteTolerance.
+         * 
+         * @param value the magnitude of error to threshold.  Error values smaller than this number cause onTarget to return true.  Should be 0.0 or larger. 
+         */
 	AbsoluteTolerance(double value) {
 	    this.value = value;
 	}
 	
+        /**
+         * 
+         * @return true if the magnitude of the error is less than the value. 
+         */
 	public boolean onTarget() {
 	    return Math.abs(getError()) < value;
 	}
     }
     
+    /**
+     * This class is a placeholder and onTarget() always throws an exception.  
+     */
     public class NullTolerance implements Tolerance {
 
+        /** Always throws a RuntimeException.
+         * 
+         * @return nothing (unreachable because thrown exception)
+         * @throws RuntimeException always.
+         */
 	public boolean onTarget() {
 	    throw new RuntimeException("No tolerance value set when using PIDController.onTarget()");
 	}
     }
 
+    /**
+     * Creates a new thread
+     */
     private class PIDTask extends TimerTask {
 
         private PIDController m_controller;
@@ -109,11 +204,11 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
      * @param Kp the proportional coefficient
      * @param Ki the integral coefficient
      * @param Kd the derivative coefficient
-     * @param Kf the feed forward term
-     * @param source The PIDSource object that is used to get values
-     * @param output The PIDOutput object that is set to the output percentage
+     * @param Kf the feed-forward coefficient
+     * @param source the {@see PIDSource} object that is used to get values
+     * @param output the {@see PIDOutput} object that is set to the output percentage
      * @param period the loop time for doing calculations. This particularly effects calculations of the
-     * integral and differential terms. The default is 50ms.
+     * integral and differential terms.  Measured in seconds.
      */
     public PIDController(double Kp, double Ki, double Kd, double Kf,
             PIDSource source, PIDOutput output,
@@ -147,12 +242,12 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
 
     /**
      * Allocate a PID object with the given constants for P, I, D and period
-     * @param Kp
-     * @param Ki
-     * @param Kd
-     * @param source
-     * @param output
-     * @param period 
+     * @param Kp the proportional coefficient
+     * @param Ki the integral coefficient
+     * @param Kd the derivative coefficient
+     * @param source the {@see PIDSource} object
+     * @param output the {@see PIDOutput} object
+     * @param period the periodic rate that the controller performs.  Measured in seconds.
      */
     public PIDController(double Kp, double Ki, double Kd,
             PIDSource source, PIDOutput output,
@@ -178,6 +273,7 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
      * @param Kp the proportional coefficient
      * @param Ki the integral coefficient
      * @param Kd the derivative coefficient
+     * @param Kf the feed-forward coefficient
      * @param source The PIDSource object that is used to get values
      * @param output The PIDOutput object that is set to the output percentage
      */
@@ -187,7 +283,7 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
     }
 
     /**
-     * Free the PID object
+     * Free the PID object.  Cancels the thread.
      */
     public void free() {
         m_controlLoop.cancel();
@@ -198,6 +294,8 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
      * Read the input, calculate the output accordingly, and write to the output.
      * This should only be called by the PIDTask
      * and is created during initialization.
+     * <p>
+     * The math of the PID controller is a discrete-time implementation.
      */
     private void calculate() {
         boolean enabled;
@@ -268,49 +366,49 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
     }
 
     /**
-     * Set the PID Controller gain parameters.
+     * Set the PID Controller gain parameters Kp, Ki, and Kd.
      * Set the proportional, integral, and differential coefficients.
-     * @param p Proportional coefficient
-     * @param i Integral coefficient
-     * @param d Differential coefficient
+     * @param Kp Proportional coefficient
+     * @param Ki Integral coefficient
+     * @param Kd Differential coefficient
      */
-    public synchronized void setPID(double p, double i, double d) {
-        m_P = p;
-        m_I = i;
-        m_D = d;
+    public synchronized void setPID(double Kp, double Ki, double Kd) {
+        m_P = Kp;
+        m_I = Ki;
+        m_D = Kd;
         
         if (table != null) {
-            table.putNumber("p", p);
-            table.putNumber("i", i);
-            table.putNumber("d", d);
+            table.putNumber("p", Kp);
+            table.putNumber("i", Ki);
+            table.putNumber("d", Kd);
         }
     }
 
         /**
      * Set the PID Controller gain parameters.
      * Set the proportional, integral, and differential coefficients.
-     * @param p Proportional coefficient
-     * @param i Integral coefficient
-     * @param d Differential coefficient
-     * @param f Feed forward coefficient
+     * @param Kp Proportional coefficient
+     * @param Ki Integral coefficient
+     * @param Kd Differential coefficient
+     * @param Kf Feed forward coefficient
      */
-    public synchronized void setPID(double p, double i, double d, double f) {
-        m_P = p;
-        m_I = i;
-        m_D = d;
-        m_F = f;
+    public synchronized void setPID(double Kp, double Ki, double Kd, double Kf) {
+        m_P = Kp;
+        m_I = Ki;
+        m_D = Kd;
+        m_F = Kf;
         
         if (table != null) {
-            table.putNumber("p", p);
-            table.putNumber("i", i);
-            table.putNumber("d", d);
-            table.putNumber("f", f);
+            table.putNumber("p", Kp);
+            table.putNumber("i", Ki);
+            table.putNumber("d", Kd);
+            table.putNumber("f", Kf);
         }
     }
     
     /**
      * Get the Proportional coefficient
-     * @return proportional coefficient
+     * @return proportional coefficient, Kp.
      */
     public double getP() {
         return m_P;
@@ -318,7 +416,7 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
 
     /**
      * Get the Integral coefficient
-     * @return integral coefficient
+     * @return integral coefficient, Ki.
      */
     public double getI() {
         return m_I;
@@ -326,7 +424,7 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
 
     /**
      * Get the Differential coefficient
-     * @return differential coefficient
+     * @return differential coefficient, Kd.
      */
     public synchronized double getD() {
         return m_D;
@@ -334,7 +432,7 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
     
     /**
      * Get the Feed forward coefficient
-     * @return feed forward coefficient
+     * @return feed forward coefficient, Kf.
      */
     public synchronized double getF() {
         return m_F;
@@ -461,7 +559,7 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
     /**
      * Set the absolute error which is considered tolerable for use with
      * OnTarget. 
-     * @param absolute error which is tolerable in the units of the input object
+     * @param absvalue error which is tolerable in the units of the input object
      */
     public synchronized void setAbsoluteTolerance(double absvalue) {
 	m_tolerance = new AbsoluteTolerance(absvalue);
@@ -470,7 +568,7 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
     /**
      * Set the percentage error which is considered tolerable for use with
      * OnTarget. (Input of 15.0 = 15 percent)
-     * @param percent error which is tolerable
+     * @param percentage error which is tolerable
      */
      public synchronized void setPercentTolerance(double percentage) {
 	m_tolerance = new PercentageTolerance(percentage);
@@ -510,7 +608,8 @@ public class PIDController implements IUtility, LiveWindowSendable, Controller {
     }
 
     /**
-     * Return true if PIDController is enabled.
+     * @return true if PIDController is enabled.
+     * 
      */
     public synchronized boolean isEnable() {
         return m_enabled;
