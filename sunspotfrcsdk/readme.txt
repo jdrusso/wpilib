@@ -1,0 +1,1 @@
+This build.xml replaces the one in the %USERDIR%\sunspotfrcsdk\ to incorporate including mathjax for the documentation.
