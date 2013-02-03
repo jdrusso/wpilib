@@ -15,6 +15,8 @@ import edu.wpi.first.wpilibj.parsing.IInputOutput;
  * This class handles standard input that comes from the Driver Station. Each time a value is requested
  * the most recent value is returned. There is a single class instance for each joystick and the mapping
  * of ports to hardware buttons depends on the code in the driver station.
+ * 
+ * <img src="doc-files/JoystickDirections.svg" />
  */
 public class Joystick extends GenericHID implements IInputOutput{
 
