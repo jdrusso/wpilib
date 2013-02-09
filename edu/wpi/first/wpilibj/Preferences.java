@@ -110,9 +110,11 @@ public class Preferences {
                 } else {
                     synchronized (lock) {
                         if (!ImproperPreferenceKeyException.isAcceptable(key) || value.toString().indexOf('"') != -1) {
-                            NetworkTable.getTable(TABLE_NAME).putString(key, "\"");
-                            values.remove(key);
-                            keys.removeElement(key);
+                            if(values.contains(key) || keys.contains(key)){
+                                values.remove(key);
+                                keys.removeElement(key);
+                                NetworkTable.getTable(TABLE_NAME).putString(key, "\"");
+                            }
                         } else {
                             if (values.put(key, value.toString()) == null) {
                                 keys.addElement(key);
