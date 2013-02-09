@@ -16,7 +16,19 @@ import edu.wpi.first.wpilibj.parsing.IInputOutput;
  * the most recent value is returned. There is a single class instance for each joystick and the mapping
  * of ports to hardware buttons depends on the code in the driver station.
  * 
- * <img src="doc-files/JoystickDirections.svg" />
+ * <center><img src="../../../../doc-files/JoystickDirections.svg" height=500/></center>
+ * <center>Default Joystick Axis Labeling (Your specific model may vary)</center>
+ * 
+ * The default order of numbering the axis:
+ * <ul>
+ * <li>1 - X axis
+ * <li>2 - Y axis
+ * <li>3 - Z axis (aka Twist)
+ * <li>4 - Throttle axis
+ * </ul>
+ * 
+ * If a specific axis is missing on your joystick (ie, no Twist Axis), then the remaining
+ * axis are moved up the list (ie, Throttle should be used in your code as the Z axis).
  */
 public class Joystick extends GenericHID implements IInputOutput{
 
