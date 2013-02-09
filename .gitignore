@@ -1,10 +1,12 @@
 *.class
 
-doc/*
-
 # Package Files #
 *.jar
 *.war
 *.ear
 
+doc/*
+
+nbproject/private/private.xml
 nbproject/project.bak.xml
+RunTestsProject/nbproject/private/private.xml
