@@ -88,7 +88,7 @@
     <target name="javadoc">
 		<delete dir="doc"/>
 		<mkdir dir="doc"/>
-		<javadoc verbose="true" author="true" destdir="doc" link="file:///${sunspot.home}/doc/javadoc" linksource="true" Header="&apos;&lt;script type=&quot;text/javascript&quot; src=&quot;http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML&quot;&gt;&lt;/script&gt;&apos;">
+		<javadoc verbose="true" author="true" destdir="doc" link="file:///${sunspot.home}/doc/javadoc" linksource="true" Header="&lt;script type=&quot;text/javascript&quot; src='&quot;http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML&quot;'&gt;&lt;/script&gt;">
 			<classpath path="${full.classpath}:${full.bootclasspath}"/>
 			<fileset dir="src" >
 				<filename name="**/*.java"/>
