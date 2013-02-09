@@ -8,7 +8,6 @@
 package edu.wpi.first.wpilibj.command;
 
 import edu.wpi.first.wpilibj.NamedSendable;
-import edu.wpi.first.wpilibj.Sendable;
 import edu.wpi.first.wpilibj.tables.ITable;
 import java.util.Enumeration;
 import java.util.Vector;
@@ -35,6 +34,8 @@ public abstract class Subsystem implements NamedSendable{
     private boolean initializedDefaultCommand = false;
     /** The current command */
     private Command currentCommand;
+    private boolean currentCommandChanged;
+
     /** The default command */
     private Command defaultCommand;
     /** The name */
@@ -57,6 +58,7 @@ public abstract class Subsystem implements NamedSendable{
     public Subsystem() {
         this.name = getClass().getName().substring(getClass().getName().lastIndexOf('.') + 1);
         Scheduler.getInstance().registerSubsystem(this);
+        currentCommandChanged = true;
     }
     
     /**
@@ -123,6 +125,7 @@ public abstract class Subsystem implements NamedSendable{
      */
     void setCurrentCommand(Command command) {
         currentCommand = command;
+        currentCommandChanged = true;
     }
 
     /**
@@ -131,13 +134,16 @@ public abstract class Subsystem implements NamedSendable{
      * is going through the loop, only to be soon after given a new one.  This will avoid that situation.
      */
     void confirmCommand() {
-        if (table != null) {
-            if (currentCommand != null) {
-                table.putBoolean("hasCommand", true);
-                table.putString("command", currentCommand.getName());
-            } else {
-                table.putBoolean("hasCommand", false);
+        if (currentCommandChanged) {
+            if (table != null) {
+                if (currentCommand != null) {
+                    table.putBoolean("hasCommand", true);
+                    table.putString("command", currentCommand.getName());
+                } else {
+                    table.putBoolean("hasCommand", false);
+                }
             }
+            currentCommandChanged = false;
         }
     }
 

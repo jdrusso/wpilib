@@ -6,6 +6,5 @@ doc/*
 *.jar
 *.war
 *.ear
-/RunTestsProject/nbproject/private/
 
 nbproject/project.bak.xml
