@@ -16,10 +16,10 @@ import edu.wpi.first.wpilibj.parsing.IInputOutput;
  * the most recent value is returned. There is a single class instance for each joystick and the mapping
  * of ports to hardware buttons depends on the code in the driver station.
  * 
- * <center><img src="../../../../doc-files/JoystickDirections.svg" height=500/></center>
+ * <center><img src="../../../../doc-files/JoystickDirections.svg" height=400/></center>
  * <center>Default Joystick Axis Labeling (Your specific model may vary)</center>
  * 
- * The default order of numbering the axis:
+ * The default order of numbering the axis (also called the mapping):
  * <ul>
  * <li>1 - X axis
  * <li>2 - Y axis
@@ -41,7 +41,9 @@ public class Joystick extends GenericHID implements IInputOutput{
     static final int kDefaultTopButton = 2;
 
     /**
-     * Represents an analog axis on a joystick.
+     * Represents an analog axis on a joystick.  All necessary objects for this 
+     * class are already created as 
+     * <code>kX, kY, kZ, kTwist, kThrottle, kNumPad</code>
      */
     public static class AxisType {
 
@@ -86,29 +88,32 @@ public class Joystick extends GenericHID implements IInputOutput{
     }
 
     /**
-     * Represents a digital button on the JoyStick
+     * Represents a digital button on the JoyStick.
      */
     public static class ButtonType {
 
         /**
-         * The integer value representing this enumeration
+         * The integer value representing this enumeration.
+         * All necessary objects for this 
+         * class are already created as 
+         * <code>kTrigger, kTop, kNumButton</code>
          */
         public final int value;
         static final int kTrigger_val = 0;
         static final int kTop_val = 1;
         static final int kNumButton_val = 2;
         /**
-         * button: trigger
+         * button: trigger.
          */
-        public static final ButtonType kTrigger = new ButtonType((kTrigger_val));
+        public static final ButtonType kTrigger = new ButtonType(kTrigger_val);
         /**
-         * button: top button
+         * button: top button.
          */
         public static final ButtonType kTop = new ButtonType(kTop_val);
         /**
-         * button: num button types
+         * button: num button types.
          */
-        public static final ButtonType kNumButton = new ButtonType((kNumButton_val));
+        public static final ButtonType kNumButton = new ButtonType(kNumButton_val);
 
         private ButtonType(int value) {
             this.value = value;
@@ -121,9 +126,12 @@ public class Joystick extends GenericHID implements IInputOutput{
 
     /**
      * Construct an instance of a joystick.
-     * The joystick index is the usb port on the drivers station.
+     * The joystick port is the USB port on the drivers station.  
+     * This value can be confirmed in the Driver Station software under the 
+     * Diagnostics tab by clicking the Joystick trigger button.
      *
-     * @param port The port on the driver station that the joystick is plugged into.
+     * @param port The USB port on the driver station that the joystick is plugged into.  Should be a value 1 to 4.
+     * 
      */
     public Joystick(final int port) {
         this(port, AxisType.kNumAxis.value, ButtonType.kNumButton.value);
@@ -146,7 +154,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * This constructor allows the subclass to configure the number of constants
      * for axes and buttons.
      *
-     * @param port The port on the driver station that the joystick is plugged into.
+     * @param port The USB port on the driver station that the joystick is plugged into.
      * @param numAxisTypes The number of axis types in the enum.
      * @param numButtonTypes The number of button types in the enum.
      */
@@ -162,7 +170,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * This depends on the mapping of the joystick connected to the current port.
      *
      * @param hand Unused
-     * @return The X value of the joystick.
+     * @return The X axis value of the joystick.  Value is between [-1.0, 1.0].
      */
     public double getX(Hand hand) {
         return getRawAxis(m_axes[AxisType.kX.value]);
@@ -173,7 +181,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * This depends on the mapping of the joystick connected to the current port.
      *
      * @param hand Unused
-     * @return The Y value of the joystick.
+     * @return The Y axis value of the joystick.  Value is between [-1.0, 1.0].
      */
     public double getY(Hand hand) {
         return getRawAxis(m_axes[AxisType.kY.value]);
@@ -184,17 +192,17 @@ public class Joystick extends GenericHID implements IInputOutput{
      * This depends on the mapping of the joystick connected to the current port.
      *
      * @param hand Unused
-     * @return The Z value of the joystick.
+     * @return The Z axis value of the joystick.  Value is between [-1.0, 1.0].
      */
     public double getZ(Hand hand) {
         return getRawAxis(m_axes[AxisType.kZ.value]);
     }
 
     /**
-     * Get the twist value of the current joystick.
-     * This depends on the mapping of the joystick connected to the current port.
+     * Get the twist axis value of the current joystick.
+     * This depends on the mapping of the axis on the joystick.
      *
-     * @return The Twist value of the joystick.
+     * @return The Twist value of the joystick.  Value is between [-1.0, 1.0].
      */
     public double getTwist() {
         return getRawAxis(m_axes[AxisType.kTwist.value]);
@@ -204,7 +212,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * Get the throttle value of the current joystick.
      * This depends on the mapping of the joystick connected to the current port.
      *
-     * @return The Throttle value of the joystick.
+     * @return The Throttle value of the joystick.  Value is between [-1.0, 1.0].
      */
     public double getThrottle() {
         return getRawAxis(m_axes[AxisType.kThrottle.value]);
@@ -223,7 +231,7 @@ public class Joystick extends GenericHID implements IInputOutput{
     /**
      * For the current joystick, return the axis determined by the argument.
      *
-     * This is for cases where the joystick axis is returned programatically, otherwise one of the
+     * This is for cases where the joystick axis is returned internally (by WPILIB code, not users code), otherwise one of the
      * previous functions would be preferable (for example getX()).
      *
      * @param axis The axis to read.
@@ -252,7 +260,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * Look up which button has been assigned to the trigger and read its state.
      *
      * @param hand This parameter is ignored for the Joystick class and is only here to complete the GenericHID interface.
-     * @return The state of the trigger.
+     * @return The state of the trigger (true if button is pushed).
      */
     public boolean getTrigger(Hand hand) {
         return getRawButton(m_buttons[ButtonType.kTrigger.value]);
@@ -264,7 +272,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * Look up which button has been assigned to the top and read its state.
      *
      * @param hand This parameter is ignored for the Joystick class and is only here to complete the GenericHID interface.
-     * @return The state of the top button.
+     * @return The state of the top button (true if button is pushed).
      */
     public boolean getTop(Hand hand) {
         return getRawButton(m_buttons[ButtonType.kTop.value]);
@@ -275,7 +283,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * This method is only here to complete the GenericHID interface.
      *
      * @param hand This parameter is ignored for the Joystick class and is only here to complete the GenericHID interface.
-     * @return The state of the bumper (always false)
+     * @return Always false (not used for joysticks)
      */
     public boolean getBumper(Hand hand) {
         return false;
@@ -288,9 +296,20 @@ public class Joystick extends GenericHID implements IInputOutput{
      * of each button. The appropriate button is returned as a boolean value.
      *
      * @param button The button number to be read.
-     * @return The state of the button.
+     * @return The state of the button (true if button is pushed).
      */
     public boolean getRawButton(final int button) {
+        /* (0x1 << (button - 1)) binary string of all zeros except for a single 1
+         * at the location (button-1) digits to the left.  
+         * ie: button  2 is 0b0000000000000010
+         *     button 10 is 0b0000001000000000
+         * This binary number is used to poll the single joystick button.
+         * The & performs a binary AND between the above binary number and 
+         * each bit of m_ds.getStickButtons(m_port)).
+         * The return value of the above operation is an integer (of power 2).
+         * The final comparison != 0 makes any non-zero number return true 
+         * (the button is pressed).
+         */
         return ((0x1 << (button - 1)) & m_ds.getStickButtons(m_port)) != 0;
     }
 
@@ -300,7 +319,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * The button type will be looked up in the list of buttons and then read.
      *
      * @param button The type of button to read.
-     * @return The state of the button.
+     * @return The state of the button (true if button is pushed).
      */
     public boolean getButton(ButtonType button) {
         switch (button.value) {
@@ -317,7 +336,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * Get the magnitude of the direction vector formed by the joystick's
      * current position relative to its origin
      *
-     * @return The magnitude of the direction vector
+     * @return The magnitude of the direction vector.  This is a value between [0, sqrt(2)].
      */
     public double getMagnitude() {
         return Math.sqrt(MathUtils.pow(getX(), 2) + MathUtils.pow(getY(), 2));
@@ -327,7 +346,10 @@ public class Joystick extends GenericHID implements IInputOutput{
      * Get the direction of the vector formed by the joystick and its origin
      * in radians
      *
-     * @return The direction of the vector in radians
+     * @return The direction of the vector in radians.  This is a value between 
+     * [-pi, pi] where the value 0 is aligned to the positive X axis.
+     * pi/2 corresponds to the positive Y axis.
+     * TODO: Why is the y axis made negative?
      */
     public double getDirectionRadians() {
         return MathUtils.atan2(getX(), -getY());
@@ -335,12 +357,14 @@ public class Joystick extends GenericHID implements IInputOutput{
 
     /**
      * Get the direction of the vector formed by the joystick and its origin
-     * in degrees
+     * in degrees.
      *
-     * uses acos(-1) to represent Pi due to absence of readily accessable Pi
+     * uses acos(-1) to represent Pi due to absence of readily accessible Pi
      * constant in C++
      *
-     * @return The direction of the vector in degrees
+     * @return The direction of the vector in degrees.  Zero degrees corresponds
+     * to the positive X axis, 90 degrees corresponds to the positive Y axis.  
+     * Value is between [-180, 180].
      */
     public double getDirectionDegrees() {
         return Math.toDegrees(getDirectionRadians());
@@ -350,7 +374,7 @@ public class Joystick extends GenericHID implements IInputOutput{
      * Get the channel currently associated with the specified axis.
      *
      * @param axis The axis to look up the channel for.
-     * @return The channel fr the axis.
+     * @return The channel for the axis.
      */
     public int getAxisChannel(AxisType axis) {
         return m_axes[axis.value];
