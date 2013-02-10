@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
 Ant-Version: Apache Ant 1.8.3
-Created-By: 1.6.0_29-b11 (Sun Microsystems Inc.)
-Build-Number: 123
-Built-On: 2013-01-17_10-25-13
-Built-From: SVN r3599
+Created-By: 1.6.0_21-b07 (Sun Microsystems Inc.)
+Build-Number: LOCAL
+Built-On: 2013-02-09_04-53-21
+Built-From: SVN rLOCAL
 Build-Type: CUSTOM
 Build-Target: cRIO
 MIDlet-Name: WPILibJ
