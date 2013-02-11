@@ -5,9 +5,9 @@
 *.war
 *.ear
 doc/*
-nbproject/private/private.xml
-nbproject/project.bak.xml
+# nbproject/private/private.xml
+# nbproject/project.bak.xml
 RunTestsProject/nbproject/private/private.xml
 /dist/
-nbproject/project.xml
+# nbproject/project.xml
 build/resources/META-INF/MANIFEST.MF
